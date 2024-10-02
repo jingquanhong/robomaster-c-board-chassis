@@ -30,6 +30,7 @@
 #include "BSP_CAN.h"
 #include "PID.h"
 #include "dbus.h"
+#define a 1.414213562373;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 /* USER CODE END Includes */
 
@@ -64,7 +65,13 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 PID_TypeDef motor_pid[4];
-int32_t set_spd = 0;
+int32_t set_spd1=0;
+int32_t set_spd2=0;
+int32_t set_spd3=0;
+int32_t set_spd4=0;
+int32_t w=0;//angle rad
+int32_t r=10;
+int32_t set_spd=0;
 /* USER CODE END 0 */
 
 /**
@@ -124,49 +131,36 @@ HAL_CAN_Start(&hcan1);
     motor_pid[i].f_param_init(&motor_pid[i],PID_Speed,16384,5000,10,0,8000,0,1.5,0.05,0);  
   }
   /* USER CODE BEGIN WHILE */
+	int32_t vx=0;
+	int32_t vy=0;
   while (1)
   {
-		if(rc.sw2==3){
-		if(rc.ch4!=0){
-		set_spd=rc.ch4*6;
+		vx=rc.ch3;
+		vy=rc.ch4;
+		set_spd1=-vx*0.5*a+vy*0.5*a+w*r;//m1
+		set_spd2=-vx*0.5*a-vy*0.5*a+w*r;//m2
+		set_spd3=vx*0.5*a-vy*0.5*a+w*r;//m3
+		set_spd4=vx*0.5*a+vy*0.5*a+w*r;//m4
+		if(rc.sw2==3){//the right==middle
+		w=0;
     /* USER CODE END WHILE */
-
-	motor_pid[0].target=set_spd;
+	  motor_pid[0].target=set_spd1;
 		motor_pid[0].f_cal_pid(&motor_pid[0],moto_chassis[0].speed_rpm);
-	motor_pid[1].target=-set_spd;
+	  motor_pid[1].target=-set_spd2;
 		motor_pid[1].f_cal_pid(&motor_pid[1],moto_chassis[1].speed_rpm);
-		motor_pid[2].target=-set_spd;
+		motor_pid[2].target=-set_spd3;
 		motor_pid[2].f_cal_pid(&motor_pid[2],moto_chassis[2].speed_rpm);
-		motor_pid[3].target=set_spd;
+		motor_pid[3].target=set_spd4;
 		motor_pid[3].f_cal_pid(&motor_pid[3],moto_chassis[3].speed_rpm);
-		}
-		else{
-			set_spd=rc.ch3*6;
-    /* USER CODE END WHILE */
-
-	motor_pid[0].target=set_spd;
+		}else if(rc.sw2==1){//the right==up
+		w=10;
+		motor_pid[0].target=set_spd1;
 		motor_pid[0].f_cal_pid(&motor_pid[0],moto_chassis[0].speed_rpm);
-	motor_pid[1].target=set_spd;
+	  motor_pid[1].target=set_spd2;
 		motor_pid[1].f_cal_pid(&motor_pid[1],moto_chassis[1].speed_rpm);
-		motor_pid[2].target=-set_spd;
+		motor_pid[2].target=set_spd3;
 		motor_pid[2].f_cal_pid(&motor_pid[2],moto_chassis[2].speed_rpm);
-		motor_pid[3].target=-set_spd;
-		motor_pid[3].f_cal_pid(&motor_pid[3],moto_chassis[3].speed_rpm);
-		}
-		
-    //send pid imformation
-		/**************************************************************/
-		
-		HAL_Delay(10);  // 100hz
-	}else{
-		set_spd=rc.ch3*6;
-		motor_pid[0].target=set_spd;
-		motor_pid[0].f_cal_pid(&motor_pid[0],moto_chassis[0].speed_rpm);
-	motor_pid[1].target=set_spd;
-		motor_pid[1].f_cal_pid(&motor_pid[1],moto_chassis[1].speed_rpm);
-		motor_pid[2].target=set_spd;
-		motor_pid[2].f_cal_pid(&motor_pid[2],moto_chassis[2].speed_rpm);
-		motor_pid[3].target=set_spd;
+		motor_pid[3].target=set_spd4;
 		motor_pid[3].f_cal_pid(&motor_pid[3],moto_chassis[3].speed_rpm);
 		HAL_Delay(10);
 	}
